@@ -182,8 +182,8 @@ def timeSince(since, percent):
 
 def save_checkpoint(state, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
-    if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+    #if is_best:
+    #    shutil.copyfile(filename, 'model_best.pth.tar')
 
 def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
     start = time.time()
@@ -213,14 +213,18 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
             print_loss_total = 0
             print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
                                          iter, iter / n_iters * 100, print_loss_avg))
-        
+            plot_losses.append(print_loss_avg)
             save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'best_error': best_prec1,
-                'optimizer' : optimizer.state_dict(),
-            }, is_best)
+                'epoch': iter + 1,
+                'state_dict': encoder.state_dict(),
+                'optimizer' : encoder_optimizer.state_dict(),
+            }, filename = "encoder.pth.tar")
+
+            save_checkpoint({
+                'epoch': iter + 1,
+                'state_dict': decoder.state_dict(),
+                'optimizer' : decoder_optimizer.state_dict(),
+            }, filename = "decoder.pth.tar")
 
     showPlot(plot_losses)
 
@@ -245,7 +249,8 @@ def showPlot(points):
     loc = ticker.MultipleLocator(base=0.2)
     ax.yaxis.set_major_locator(loc)
     plt.plot(points)
-
+    plt.savefig("loss_plot.png")
+    
 
 ######################################################################
 # Evaluation
@@ -323,7 +328,7 @@ encoder1 = EncoderRNN(input_lang.n_words, hidden_size)
 attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words,
                                1, dropout_p=0.1)
 
-trainIters(encoder1, attn_decoder1, 75000, print_every=10)
+trainIters(encoder1, attn_decoder1, 100, print_every=10)
 
 evaluateRandomly(encoder1, attn_decoder1)
 
